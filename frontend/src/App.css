@@ -1,0 +1,7 @@
+/* Already defined in index.css - this file can be minimal or empty */
+/* Keeping it for compatibility */
+.app-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}

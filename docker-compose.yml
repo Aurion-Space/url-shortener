@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: url-shortener-postgres
+    environment:
+      POSTGRES_USER: urlshort_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: urlshort_db
+    volumes:
+      - urlshort-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U urlshort_user -d urlshort_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - urlshort-internal
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: url-shortener-backend
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://urlshort_user:${DB_PASSWORD}@url-shortener-postgres:5432/urlshort_db
+      NODE_ENV: production
+      LOG_LEVEL: info
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:3001}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - ai-apps
+      - urlshort-internal
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: url-shortener-frontend
+    restart: unless-stopped
+    networks:
+      - ai-apps
+
+networks:
+  ai-apps:
+    external: true
+  urlshort-internal:
+    driver: bridge
+
+volumes:
+  urlshort-postgres-data:
